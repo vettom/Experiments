@@ -21,7 +21,7 @@ jobs:
             BASE=origin/${{ github.base_ref }}
             HEAD=HEAD
             echo "Comparing changes against $BASE..."
-            CHANGED_DIRS=$(git diff --name-only $BASE...$HEAD -- repo/helm-charts/ | cut -d/ -f1-3 | sort -u)
+            CHANGED_DIRS=$(git diff --name-only $BASE...$HEAD -- repo/Helm-charts/ | cut -d/ -f1-3 | sort -u)
           elif [ "${{ github.event_name }}" = "push" ]; then
             BASE=${{ github.event.before }}
             HEAD=${{ github.sha }}
@@ -29,7 +29,7 @@ jobs:
             CHANGED_DIRS=$(git diff --name-only $BASE $HEAD -- repo/Helm-charts/ | cut -d/ -f1-3 | sort -u)
           else
             # for manual workflow_dispatch, take all chart dirs
-            CHANGED_DIRS=$(find repo/helm-charts -mindepth 1 -maxdepth 1 -type d)
+            CHANGED_DIRS=$(find repo/Helm-charts -mindepth 1 -maxdepth 1 -type d)
           fi
 
           echo "Changed directories:"
