@@ -22,6 +22,7 @@ jobs:
         run: |
           if [ "${{ github.event_name }}" = "push" ]; then
             # For push events, compare the current commit with the previous one
+            git fetch origin ${{ github.base_ref }}
             RANGE="${{ github.event.before }}...${{ github.sha }}"
           elif [ "${{ github.event_name }}" = "pull_request" ]; then
             # For pull_request events, compare the PR head with the base branch
