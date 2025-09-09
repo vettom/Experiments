@@ -49,14 +49,18 @@ jobs:
               fi
           done
 
-          # Format the list as a JSON array for the workflow output
-          JSON_LIST=$(printf '%s\n' "${CHART_DIRS[@]}" | jq -R . | jq -s .)
+        #   # Format the list as a JSON array for the workflow output
+        #   JSON_LIST=$(printf '%s\n' "${CHART_DIRS[@]}" | jq -R . | jq -s .)
           
-          # Set the output variable
-          echo "Found the following changed charts: $JSON_LIST"
-          echo "End"
+        #   # Set the output variable
+        #   echo "Found the following changed charts: $JSON_LIST"
         #   echo "charts=$JSON_LIST" >> $GITHUB_OUTPUT
-
+            # Format the list as a JSON array
+          JSON_LIST=$(printf '%s\n' "${CHART_DIRS[@]}" | jq -R . | jq -s .)
+        # Use a delimiter for multiline strings to safely set the output
+          echo "charts<<EOF" >> $GITHUB_OUTPUT
+          echo "$JSON_LIST" >> $GITHUB_OUTPUT
+          echo "EOF" >> $GITHUB_OUTPUT
     #   - name: Use the list in a subsequent step
     #     run: |
     #       CHARTS_LIST=${{ steps.get-changed-charts.outputs.charts }}
