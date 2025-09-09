@@ -1,62 +1,67 @@
-name: Helm Chart CI
+name: Detect Chart Changes
 
 on:
-  workflow_dispatch: # manual trigger
   pull_request:
     paths:
-      - 'Helm-charts/**'  # only trigger if helm charts are modified
+      - 'Helm-charts/**'
+  push:
+    branches:
+      - main
+    paths:
+      - 'Helm-charts/**'
 
 jobs:
-  detect-directory-changes:
-    name: "Detect Directory Changes"
+  find-changed-charts:
     runs-on: ubuntu-latest
     outputs:
-      changed: ${{ steps.set-output.outputs.changed }}
+      changed_charts: ${{ steps.get-changed-charts.outputs.charts }}
     steps:
-      - name: Checkout
+      - name: Checkout repository
         uses: actions/checkout@v4
         with:
-          fetch-depth: 0
+          fetch-depth: 0 # Fetch all history for accurate diffing
 
-      - name: Get Changed Directories
+      - name: Get changed files
+        id: files
+        uses: tj-actions/changed-files@v44
+        with:
+          files: Helm-charts/**
+
+      - name: Determine changed charts
+        id: get-changed-charts
         run: |
-          if [ "${{ github.event_name }}" = "push" ]; then
-            # For push events, compare the current commit with the previous one
-            RANGE="${{ github.event.before }}...${{ github.sha }}"
-          elif [ "${{ github.event_name }}" = "pull_request" ]; then
-            # For pull_request events, compare the PR head with the base branch
-            RANGE="${{ github.base_ref }}...${{ github.head_ref }}"
-          else
-            echo "Unsupported event type."
-            exit 1
-          fi
-
-          git diff --name-only $RANGE |
-          grep -v '^\.github/' |
-          grep -v '^README.md' |
-          grep ^Helm-charts |
-          awk -F'/' '{print $1}' |
-          sort -u > changes.txt
-          touch changed_dirs.txt
-          for i in `cat changes.txt`
-          do 
-            if [ -d $i ]
-            then 
-              echo $i >> changed_dirs.txt
-            fi
+          # Get a list of changed files
+          CHANGED_FILES="${{ steps.files.outputs.all_changed_files }}"
+          
+          # Initialize an empty array for chart names
+          declare -a CHART_DIRS=()
+          
+          # Loop through each changed file
+          for file in $CHANGED_FILES; do
+              # Check if the file path is within a chart directory
+              if [[ "$file" =~ ^Helm-charts/([^/]+)/.* ]]; then
+                  chart_dir="${BASH_REMATCH[1]}"
+                  
+                  # Add the chart directory to the array if it's not already there
+                  if [[ ! " ${CHART_DIRS[@]} " =~ " ${chart_dir} " ]]; then
+                      CHART_DIRS+=("$chart_dir")
+                  fi
+              fi
           done
-          echo "Changed root directories (excluding .github):"
-          cat changed_dirs.txt
-          echo "Changed directories: $CHANGED_DIRS"
-      - name: Set Output
-        id: set-output
-        run: |
-          CHANGED_DIRS=($(cat changed_dirs.txt))
-          if [ ${#CHANGED_DIRS[@]} -eq 0 ]; then
-            # No directories changed, output an empty JSON array
-            echo 'changed=[]' >> $GITHUB_OUTPUT
-          else
-            # Convert to JSON array and output
-            JSON_ARRAY=$(printf '%s\n' "${CHANGED_DIRS[@]}" | jq -R -s -c 'split("\n") | map(select(. != ""))')
-            echo "changed=$JSON_ARRAY" >> $GITHUB_OUTPUT
-          fi
+
+        #   # Format the list as a JSON array for the workflow output
+        #   JSON_LIST=$(printf '%s\n' "${CHART_DIRS[@]}" | jq -R . | jq -s .)
+          
+        #   # Set the output variable
+        #   echo "Found the following changed charts: $JSON_LIST"
+        #   echo "charts=$JSON_LIST" >> $GITHUB_OUTPUT
+            # Format the list as a JSON array
+          JSON_LIST=$(printf '%s\n' "${CHART_DIRS[@]}" | jq -R . | jq -s .)
+        # Use a delimiter for multiline strings to safely set the output
+          echo "charts<<EOF" >> $GITHUB_OUTPUT
+          echo "$JSON_LIST" >> $GITHUB_OUTPUT
+          echo "EOF" >> $GITHUB_OUTPUT
+    #   - name: Use the list in a subsequent step
+    #     run: |
+    #       CHARTS_LIST=${{ steps.get-changed-charts.outputs.charts }}
+    #       echo "List of changed charts: $CHARTS_LIST"
