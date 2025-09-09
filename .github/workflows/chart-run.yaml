@@ -5,38 +5,56 @@ on:
   pull_request:
     paths:
       - 'Helm-charts/**'  # only trigger if helm charts are modified
+
 jobs:
-  lint-test:
+  detect-directory-changes:
+    name: "Detect Directory Changes"
     runs-on: ubuntu-latest
+    outputs:
+      changed: ${{ steps.set-output.outputs.changed }}
     steps:
       - name: Checkout
-        uses: actions/checkout@v3
+        uses: actions/checkout@v4
         with:
           fetch-depth: 0
 
-      - name: Set up Helm
-        uses: azure/setup-helm@v4.2.0
-        with:
-          version: v3.17.0
-
-      - uses: actions/setup-python@v5.3.0
-        with:
-          python-version: '3.x'
-          check-latest: true
-
-      - name: Set up chart-testing
-        uses: helm/chart-testing-action@v2.7.0
-
-      - name: Run chart-testing (list-changed)
-        id: list-changed
+      - name: Get Changed Directories
         run: |
-          changed=$(ct list-changed --target-branch ${{ github.event.repository.default_branch }})
-          if [[ -n "$changed" ]]; then
-            echo "changed=true" >> "$GITHUB_OUTPUT"
-            echo "Changed charts:"
-            echo "$changed"
+          if [ "${{ github.event_name }}" = "push" ]; then
+            # For push events, compare the current commit with the previous one
+            RANGE="${{ github.event.before }}...${{ github.sha }}"
+          elif [ "${{ github.event_name }}" = "pull_request" ]; then
+            # For pull_request events, compare the PR head with the base branch
+            RANGE="${{ github.base_ref }}...${{ github.head_ref }}"
+          else
+            echo "Unsupported event type."
+            exit 1
           fi
 
-      - name: Run chart-testing (lint)
-        if: steps.list-changed.outputs.changed == 'true'
-        run: ct lint --target-branch ${{ github.event.repository.default_branch }}
+          git diff --name-only $RANGE |
+          grep -v '^\.github/' |
+          awk -F'/' '{print $1}' |
+          sort -u > changes.txt
+          touch changed_dirs.txt
+          for i in `cat changes.txt`
+          do 
+            if [ -d $i ]
+            then 
+              echo $i >> changed_dirs.txt
+            fi
+          done
+          echo "Changed root directories (excluding .github):"
+          cat changed_dirs.txt
+
+    #   - name: Set Output
+    #     id: set-output
+    #     run: |
+    #       CHANGED_DIRS=($(cat changed_dirs.txt))
+    #       if [ ${#CHANGED_DIRS[@]} -eq 0 ]; then
+    #         # No directories changed, output an empty JSON array
+    #         echo 'changed=[]' >> $GITHUB_OUTPUT
+    #       else
+    #         # Convert to JSON array and output
+    #         JSON_ARRAY=$(printf '%s\n' "${CHANGED_DIRS[@]}" | jq -R -s -c 'split("\n") | map(select(. != ""))')
+    #         echo "changed=$JSON_ARRAY" >> $GITHUB_OUTPUT
+    #       fi
