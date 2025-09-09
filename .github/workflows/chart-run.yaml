@@ -33,6 +33,8 @@ jobs:
 
           git diff --name-only $RANGE |
           grep -v '^\.github/' |
+          grep -v '^README.md' |
+          grep ^Helm-charts |
           awk -F'/' '{print $1}' |
           sort -u > changes.txt
           touch changed_dirs.txt
@@ -45,7 +47,7 @@ jobs:
           done
           echo "Changed root directories (excluding .github):"
           cat changed_dirs.txt
-
+          echo "Changed directories: $CHANGED_DIRS"
       - name: Set Output
         id: set-output
         run: |
