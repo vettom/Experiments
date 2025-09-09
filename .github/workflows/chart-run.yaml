@@ -26,7 +26,7 @@ jobs:
             BASE=${{ github.event.before }}
             HEAD=${{ github.sha }}
             echo "Comparing changes between $BASE and $HEAD..."
-            CHANGED_DIRS=$(git diff --name-only $BASE $HEAD -- repo/helm-charts/ | cut -d/ -f1-3 | sort -u)
+            CHANGED_DIRS=$(git diff --name-only $BASE $HEAD -- repo/Helm-charts/ | cut -d/ -f1-3 | sort -u)
           else
             # for manual workflow_dispatch, take all chart dirs
             CHANGED_DIRS=$(find repo/helm-charts -mindepth 1 -maxdepth 1 -type d)
