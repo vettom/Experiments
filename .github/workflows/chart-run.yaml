@@ -54,9 +54,10 @@ jobs:
           
           # Set the output variable
           echo "Found the following changed charts: $JSON_LIST"
-          echo "charts=$JSON_LIST" >> $GITHUB_OUTPUT
+          echo "End"
+        #   echo "charts=$JSON_LIST" >> $GITHUB_OUTPUT
 
-      - name: Use the list in a subsequent step
-        run: |
-          CHARTS_LIST=${{ steps.get-changed-charts.outputs.charts }}
-          echo "List of changed charts: $CHARTS_LIST"
+    #   - name: Use the list in a subsequent step
+    #     run: |
+    #       CHARTS_LIST=${{ steps.get-changed-charts.outputs.charts }}
+    #       echo "List of changed charts: $CHARTS_LIST"
