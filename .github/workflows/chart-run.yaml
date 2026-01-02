@@ -13,50 +13,55 @@ jobs:
     outputs:
       changed: ${{ steps.set-output.outputs.changed }}
     steps:
-      - name: Checkout
-        uses: actions/checkout@v4
-        with:
-          fetch-depth: 0
-
-      - name: Get Changed Directories
+      - name: get chart name
         run: |
-          if [ "${{ github.event_name }}" = "push" ]; then
-            # For push events, compare the current commit with the previous one
-            RANGE="${{ github.event.before }}...${{ github.sha }}"
-          elif [ "${{ github.event_name }}" = "pull_request" ]; then
-            # For pull_request events, compare the PR head with the base branch
-            RANGE="${{ github.base_ref }}...${{ github.head_ref }}"
-          else
-            echo "Unsupported event type."
-            exit 1
-          fi
+          version="0.1.2"
+          chart_name="mychart-${version}.tgz"
+          echo "chart_name=$chart_name" 
+      # - name: Checkout
+      #   uses: actions/checkout@v4
+      #   with:
+      #     fetch-depth: 0
 
-          git diff --name-only $RANGE |
-          grep -v '^\.github/' |
-          grep -v '^README.md' |
-          grep ^Helm-charts |
-          awk -F'/' '{print $1}' |
-          sort -u > changes.txt
-          touch changed_dirs.txt
-          for i in `cat changes.txt`
-          do 
-            if [ -d $i ]
-            then 
-              echo $i >> changed_dirs.txt
-            fi
-          done
-          echo "Changed root directories (excluding .github):"
-          cat changed_dirs.txt
-          echo "Changed directories: $CHANGED_DIRS"
-      - name: Set Output
-        id: set-output
-        run: |
-          CHANGED_DIRS=($(cat changed_dirs.txt))
-          if [ ${#CHANGED_DIRS[@]} -eq 0 ]; then
-            # No directories changed, output an empty JSON array
-            echo 'changed=[]' >> $GITHUB_OUTPUT
-          else
-            # Convert to JSON array and output
-            JSON_ARRAY=$(printf '%s\n' "${CHANGED_DIRS[@]}" | jq -R -s -c 'split("\n") | map(select(. != ""))')
-            echo "changed=$JSON_ARRAY" >> $GITHUB_OUTPUT
-          fi
+      # - name: Get Changed Directories
+      #   run: |
+      #     if [ "${{ github.event_name }}" = "push" ]; then
+      #       # For push events, compare the current commit with the previous one
+      #       RANGE="${{ github.event.before }}...${{ github.sha }}"
+      #     elif [ "${{ github.event_name }}" = "pull_request" ]; then
+      #       # For pull_request events, compare the PR head with the base branch
+      #       RANGE="${{ github.base_ref }}...${{ github.head_ref }}"
+      #     else
+      #       echo "Unsupported event type."
+      #       exit 1
+      #     fi
+
+      #     git diff --name-only $RANGE |
+      #     grep -v '^\.github/' |
+      #     grep -v '^README.md' |
+      #     grep ^Helm-charts |
+      #     awk -F'/' '{print $1}' |
+      #     sort -u > changes.txt
+      #     touch changed_dirs.txt
+      #     for i in `cat changes.txt`
+      #     do 
+      #       if [ -d $i ]
+      #       then 
+      #         echo $i >> changed_dirs.txt
+      #       fi
+      #     done
+      #     echo "Changed root directories (excluding .github):"
+      #     cat changed_dirs.txt
+      #     echo "Changed directories: $CHANGED_DIRS"
+      # - name: Set Output
+      #   id: set-output
+      #   run: |
+      #     CHANGED_DIRS=($(cat changed_dirs.txt))
+      #     if [ ${#CHANGED_DIRS[@]} -eq 0 ]; then
+      #       # No directories changed, output an empty JSON array
+      #       echo 'changed=[]' >> $GITHUB_OUTPUT
+      #     else
+      #       # Convert to JSON array and output
+      #       JSON_ARRAY=$(printf '%s\n' "${CHANGED_DIRS[@]}" | jq -R -s -c 'split("\n") | map(select(. != ""))')
+      #       echo "changed=$JSON_ARRAY" >> $GITHUB_OUTPUT
+      #     fi
