@@ -1,67 +1,22 @@
-name: Helm Chart CI
+name: Build and Push Multi-Arch Image
 
 on:
-  workflow_dispatch: # manual trigger
-  pull_request:
-    paths:
-      - 'Helm-charts/**'  # only trigger if helm charts are modified
-
+  push:
+    branches:
+      - main
+env:
+    IMAGE_NAME: "httproute-prometheus-shim"
+    AWS_REGION: "eu-west-2"
+permissions:
+  id-token: write   # This is required for requesting the JWT
+  contents: write    # This is required for actions/checkout
 jobs:
-  detect-directory-changes:
-    name: "Detect Directory Changes"
+  build:
     runs-on: ubuntu-latest
-    outputs:
-      changed: ${{ steps.set-output.outputs.changed }}
+
     steps:
-      - name: get chart name
+      - name: Checkout
         run: |
           version="0.1.2"
           chart_name="mychart-${version}.tgz"
           echo "chart_name=$chart_name" 
-      # - name: Checkout
-      #   uses: actions/checkout@v4
-      #   with:
-      #     fetch-depth: 0
-
-      # - name: Get Changed Directories
-      #   run: |
-      #     if [ "${{ github.event_name }}" = "push" ]; then
-      #       # For push events, compare the current commit with the previous one
-      #       RANGE="${{ github.event.before }}...${{ github.sha }}"
-      #     elif [ "${{ github.event_name }}" = "pull_request" ]; then
-      #       # For pull_request events, compare the PR head with the base branch
-      #       RANGE="${{ github.base_ref }}...${{ github.head_ref }}"
-      #     else
-      #       echo "Unsupported event type."
-      #       exit 1
-      #     fi
-
-      #     git diff --name-only $RANGE |
-      #     grep -v '^\.github/' |
-      #     grep -v '^README.md' |
-      #     grep ^Helm-charts |
-      #     awk -F'/' '{print $1}' |
-      #     sort -u > changes.txt
-      #     touch changed_dirs.txt
-      #     for i in `cat changes.txt`
-      #     do 
-      #       if [ -d $i ]
-      #       then 
-      #         echo $i >> changed_dirs.txt
-      #       fi
-      #     done
-      #     echo "Changed root directories (excluding .github):"
-      #     cat changed_dirs.txt
-      #     echo "Changed directories: $CHANGED_DIRS"
-      # - name: Set Output
-      #   id: set-output
-      #   run: |
-      #     CHANGED_DIRS=($(cat changed_dirs.txt))
-      #     if [ ${#CHANGED_DIRS[@]} -eq 0 ]; then
-      #       # No directories changed, output an empty JSON array
-      #       echo 'changed=[]' >> $GITHUB_OUTPUT
-      #     else
-      #       # Convert to JSON array and output
-      #       JSON_ARRAY=$(printf '%s\n' "${CHANGED_DIRS[@]}" | jq -R -s -c 'split("\n") | map(select(. != ""))')
-      #       echo "changed=$JSON_ARRAY" >> $GITHUB_OUTPUT
-      #     fi
